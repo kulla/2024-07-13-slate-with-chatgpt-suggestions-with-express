@@ -116,6 +116,8 @@ const SlateEditor = () => {
       }
     }
 
+    if (textUntilSelection.length < 10) return
+
     const response = await fetch(
       `/api/complete?context=${encodeURIComponent(textUntilSelection)}`,
     )
