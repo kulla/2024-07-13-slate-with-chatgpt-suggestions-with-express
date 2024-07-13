@@ -93,45 +93,50 @@ const SlateEditor = () => {
     [editor],
   )
 
-  const fetchSuggestions = React.useCallback(async () => {
-    const { selection } = editor
+  const fetchSuggestions = React.useCallback(
+    async (lastChangeOfThisCall: number) => {
+      const { selection } = editor
 
-    if (selection == null || !Range.isCollapsed(selection)) return
+      if (selection == null || !Range.isCollapsed(selection)) return
 
-    const [nextNode] = Editor.next(editor) ?? [null]
+      const [nextNode] = Editor.next(editor) ?? [null]
 
-    if (nextNode != null && isText(nextNode) && nextNode.suggestion) {
-      return
-    }
-
-    // FIXME: This function is not working as expected
-    let textUntilSelection = ''
-
-    for (const [node] of Node.texts(editor, {
-      from: [],
-      to: selection.focus.path,
-    })) {
-      if (isText(node)) {
-        textUntilSelection += node.text
+      if (nextNode != null && isText(nextNode) && nextNode.suggestion) {
+        return
       }
-    }
 
-    if (textUntilSelection.length < 10) return
+      // FIXME: This function is not working as expected
+      let textUntilSelection = ''
 
-    const response = await fetch(
-      `/api/complete?context=${encodeURIComponent(textUntilSelection)}`,
-    )
+      for (const [node] of Node.texts(editor, {
+        from: [],
+        to: selection.focus.path,
+      })) {
+        if (isText(node)) {
+          textUntilSelection += node.text
+        }
+      }
 
-    if (response.ok) {
-      const { suggestion } = (await response.json()) as { suggestion: string }
+      if (textUntilSelection.length < 10) return
 
-      Transforms.insertNodes(editor, {
-        text: suggestion,
-        suggestion: true,
-      })
-      editor.setSelection(selection)
-    }
-  }, [editor])
+      const response = await fetch(
+        `/api/complete?context=${encodeURIComponent(textUntilSelection)}`,
+      )
+
+      if (response.ok) {
+        const { suggestion } = (await response.json()) as { suggestion: string }
+
+        if (lastChange.current === lastChangeOfThisCall) {
+          Transforms.insertNodes(editor, {
+            text: suggestion,
+            suggestion: true,
+          })
+          editor.setSelection(selection)
+        }
+      }
+    },
+    [editor],
+  )
 
   const onChange = React.useCallback(() => {
     const lastChangeOfThisCall = Date.now()
@@ -141,7 +146,7 @@ const SlateEditor = () => {
 
     setTimeout(() => {
       if (lastChange.current === lastChangeOfThisCall) {
-        void fetchSuggestions()
+        void fetchSuggestions(lastChangeOfThisCall)
       }
     }, 1000)
   }, [fetchSuggestions])
