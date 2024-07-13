@@ -110,7 +110,7 @@ const SlateEditor = () => {
             Editor.addMark(editor, 'suggestion', false)
             Editor.insertText(editor, event.key)
             event.preventDefault()
-          } else if (event.key.length === 1 || event.key === 'Enter') {
+          } else if (!isModifierKey(event.key) && !isFunctionKey(event.key)) {
             Transforms.select(
               editor,
               Editor.range(editor, ReactEditor.findPath(editor, nextNode)),
@@ -203,6 +203,29 @@ function Leaf(props: RenderLeafProps) {
     children = <em>{children}</em>
   }
   return <span {...attributes}>{children}</span>
+}
+
+function isModifierKey(key: string): boolean {
+  const modifierKeys: string[] = ['Shift', 'Control', 'Alt', 'Meta']
+  return modifierKeys.includes(key)
+}
+
+function isFunctionKey(key: string): boolean {
+  const functionKeys: string[] = [
+    'F1',
+    'F2',
+    'F3',
+    'F4',
+    'F5',
+    'F6',
+    'F7',
+    'F8',
+    'F9',
+    'F10',
+    'F11',
+    'F12',
+  ]
+  return functionKeys.includes(key)
 }
 
 export default SlateEditor
