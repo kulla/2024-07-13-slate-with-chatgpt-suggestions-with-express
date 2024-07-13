@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useCallback } from 'react'
 import {
   createEditor,
   Editor,
@@ -7,7 +7,6 @@ import {
   BaseEditor,
   Range,
   Node,
-  Descendant,
 } from 'slate'
 import {
   Slate,
@@ -17,6 +16,7 @@ import {
   RenderLeafProps,
 } from 'slate-react'
 import { withHistory, HistoryEditor } from 'slate-history'
+import { useMutation } from '@tanstack/react-query'
 import { v4 as uuidv4 } from 'uuid'
 
 interface CustomText {
@@ -45,7 +45,6 @@ const initialValue: CustomElement[] = [
 
 const SlateEditor = () => {
   const lastChange = React.useRef<number>(Date.now())
-  const completionJob = React.useRef<CompletionJob>(CompletionJob.WAITING)
   const { editor, editorKey } = useMemo(
     () => ({
       editor: withHistory(withReact(createEditor())),
@@ -53,6 +52,36 @@ const SlateEditor = () => {
     }),
     [],
   )
+
+  const fetchSuggestion = useMutation({
+    mutationFn: async ({
+      suffix,
+    }: {
+      suffix: string
+      lastChangeOfThisCall: number
+    }) => {
+      const response = await fetch(
+        `/api/complete?context=${encodeURIComponent(suffix)}`,
+      )
+      if (!response.ok) {
+        throw new Error('Failed to fetch suggestion')
+      }
+      return response.json() as Promise<{ suggestion: string }>
+    },
+    onSuccess: async ({ suggestion }, { lastChangeOfThisCall }) => {
+      const { selection } = editor
+
+      if (selection == null || !Range.isCollapsed(selection)) return
+
+      if (lastChange.current === lastChangeOfThisCall) {
+        Transforms.insertNodes(editor, {
+          text: suggestion,
+          suggestion: true,
+        })
+        editor.setSelection(selection)
+      }
+    },
+  })
 
   const onKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -94,75 +123,31 @@ const SlateEditor = () => {
     [editor],
   )
 
-  const fetchSuggestions = React.useCallback(
-    async (lastChangeOfThisCall: number) => {
-      try {
-        const { selection } = editor
-
-        if (selection == null || !Range.isCollapsed(selection)) return
-
-        const [nextNode] = Editor.next(editor) ?? [null]
-
-        if (nextNode != null && isText(nextNode) && nextNode.suggestion) {
-          return
-        }
-
-        // FIXME: This function is not working as expected
-        let textUntilSelection = ''
-
-        for (const [node] of Node.texts(editor, {
-          from: [],
-          to: selection.focus.path,
-        })) {
-          if (isText(node)) {
-            textUntilSelection += node.text
-          }
-        }
-
-        if (textUntilSelection.length < 10) return
-
-        const response = await fetch(
-          `/api/complete?context=${encodeURIComponent(textUntilSelection)}`,
-        )
-
-        if (response.ok) {
-          const { suggestion } = (await response.json()) as {
-            suggestion: string
-          }
-
-          if (lastChange.current === lastChangeOfThisCall) {
-            Transforms.insertNodes(editor, {
-              text: suggestion,
-              suggestion: true,
-            })
-            editor.setSelection(selection)
-          }
-        } else {
-          console.error('Error fetching suggestions:', response.statusText)
-        }
-      } finally {
-        completionJob.current = CompletionJob.WAITING
-      }
-    },
-    [editor],
-  )
-
   const onChange = React.useCallback(() => {
     const lastChangeOfThisCall = Date.now()
     lastChange.current = lastChangeOfThisCall
 
-    // TODO: Check that selection is on end of line
+    const { selection } = editor
+
+    if (selection == null || !Range.isCollapsed(selection)) return
+
+    const [nextNode] = Editor.next(editor) ?? [null]
+
+    if (nextNode != null && isText(nextNode) && nextNode.suggestion) return
+
+    // TODO: Check that selection is on end of the line
+    // TODO: Get until selection
+    const suffix = Node.string(editor)
 
     setTimeout(() => {
       if (
         lastChange.current === lastChangeOfThisCall &&
-        completionJob.current === CompletionJob.WAITING
+        !fetchSuggestion.isPending
       ) {
-        void fetchSuggestions(lastChangeOfThisCall)
-        completionJob.current = CompletionJob.FETCHING
+        fetchSuggestion.mutate({ suffix, lastChangeOfThisCall })
       }
     }, 1000)
-  }, [fetchSuggestions])
+  }, [editor])
 
   return (
     <>
@@ -182,14 +167,9 @@ const SlateEditor = () => {
         />
       </Slate>
       <hr />
-      <p>CompletionJob: {completionJob.current}</p>
+      <p>Fetch Suggestion Status: {fetchSuggestion.status}</p>
     </>
   )
-}
-
-enum CompletionJob {
-  WAITING = 'waiting',
-  FETCHING = 'fetching suggestions...',
 }
 
 function toggleMark(editor: Editor, format: 'bold' | 'italic') {
