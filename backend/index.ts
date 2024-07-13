@@ -50,7 +50,8 @@ app.get('/api/complete', async (req, res) => {
   const { choices } = await openai.completions.create({
     suffix,
     model: 'gpt-3.5-turbo-instruct',
-    prompt: 'Du bist ein Lehrer und schreibst einen Bildungstext',
+    prompt:
+      'Du bist ein Lehrer und schreibst ein Lehrmaterial. Vervollständige den Satz.',
   })
 
   if (choices.length === 0) {
@@ -58,7 +59,14 @@ app.get('/api/complete', async (req, res) => {
     return
   }
 
-  res.json({ suggestion: choices[0].text })
+  const suggestion = choices[0].text.trim()
+
+  if (suggestion.length === 0) {
+    res.status(500).json({ error: 'Empty completion' })
+    return
+  }
+
+  res.json({ suggestion })
 })
 
 app.get('/___build_id', (_, res) => {
