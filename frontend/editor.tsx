@@ -46,6 +46,8 @@ const initialValue: CustomElement[] = [
 const SlateEditor = () => {
   const controller = React.useRef<AbortController | null>(null)
   const lastChange = React.useRef<number>(Date.now())
+  const suggestionsEnabled = React.useRef<boolean>(true)
+
   const { editor, editorKey } = useMemo(
     () => ({
       editor: withHistory(withReact(createEditor())),
@@ -120,8 +122,11 @@ const SlateEditor = () => {
             )
             Editor.deleteFragment(editor)
             Editor.addMark(editor, 'suggestion', false)
+            suggestionsEnabled.current = false
           }
         }
+      } else if (event.key.length === 1) {
+        suggestionsEnabled.current = true
       }
     },
     [editor],
@@ -151,7 +156,8 @@ const SlateEditor = () => {
     setTimeout(() => {
       if (
         lastChange.current === lastChangeOfThisCall &&
-        !fetchSuggestion.isPending
+        !fetchSuggestion.isPending &&
+        suggestionsEnabled.current
       ) {
         fetchSuggestion.mutate({ suffix, lastChangeOfThisCall })
       }
@@ -176,7 +182,7 @@ const SlateEditor = () => {
         />
       </Slate>
       <hr />
-      <p>Fetch Suggestion Status: {fetchSuggestion.status}</p>
+      <p>Status of fetching suggestions: {fetchSuggestion.status}</p>
     </>
   )
 }
