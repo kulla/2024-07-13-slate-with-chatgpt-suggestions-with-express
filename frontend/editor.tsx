@@ -39,7 +39,7 @@ declare module 'slate' {
 const initialValue: CustomElement[] = [
   {
     type: 'paragraph',
-    children: [{ text: 'A line of text in a paragraph.' }],
+    children: [{ text: 'Der Satz des Pythagoras ist' }],
   },
 ]
 
