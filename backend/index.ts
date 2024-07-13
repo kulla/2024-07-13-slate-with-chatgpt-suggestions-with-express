@@ -7,6 +7,10 @@ const __filename = fileURLToPath(import.meta.url)
 const projectDir = dirname(dirname(__filename))
 const app = express()
 
+app.get('/', (_, res) => {
+  res.sendFile(join(projectDir, 'public', 'index.html'))
+})
+
 app.get('/index.js', async (_, res) => {
   res.setHeader('Content-Type', 'application/javascript')
 
@@ -25,10 +29,6 @@ app.get('/index.js', async (_, res) => {
     console.error('Error bundling TypeScript:', error)
     res.status(500).send('Error bundling TypeScript')
   }
-})
-
-app.get('/', (_, res) => {
-  res.sendFile(join(projectDir, 'public', 'index.html'))
 })
 
 app.listen(3000, () => {
