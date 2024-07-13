@@ -44,6 +44,7 @@ const initialValue: CustomElement[] = [
 ]
 
 const SlateEditor = () => {
+  const controller = React.useRef<AbortController | null>(null)
   const lastChange = React.useRef<number>(Date.now())
   const { editor, editorKey } = useMemo(
     () => ({
@@ -60,8 +61,10 @@ const SlateEditor = () => {
       suffix: string
       lastChangeOfThisCall: number
     }) => {
+      controller.current = new AbortController()
       const response = await fetch(
         `/api/complete?context=${encodeURIComponent(suffix)}`,
+        { signal: controller.current.signal },
       )
       if (!response.ok) {
         throw new Error('Failed to fetch suggestion')
@@ -127,6 +130,11 @@ const SlateEditor = () => {
   const onChange = React.useCallback(() => {
     const lastChangeOfThisCall = Date.now()
     lastChange.current = lastChangeOfThisCall
+
+    if (controller.current) {
+      controller.current.abort()
+      controller.current = null
+    }
 
     const { selection } = editor
 
