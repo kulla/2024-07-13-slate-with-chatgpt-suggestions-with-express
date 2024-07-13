@@ -45,6 +45,7 @@ const initialValue: CustomElement[] = [
 
 const SlateEditor = () => {
   const lastChange = React.useRef<number>(Date.now())
+  const completionJob = React.useRef<CompletionJob>(CompletionJob.WAITING)
   const { editor, editorKey } = useMemo(
     () => ({
       editor: withHistory(withReact(createEditor())),
@@ -95,44 +96,52 @@ const SlateEditor = () => {
 
   const fetchSuggestions = React.useCallback(
     async (lastChangeOfThisCall: number) => {
-      const { selection } = editor
+      try {
+        const { selection } = editor
 
-      if (selection == null || !Range.isCollapsed(selection)) return
+        if (selection == null || !Range.isCollapsed(selection)) return
 
-      const [nextNode] = Editor.next(editor) ?? [null]
+        const [nextNode] = Editor.next(editor) ?? [null]
 
-      if (nextNode != null && isText(nextNode) && nextNode.suggestion) {
-        return
-      }
-
-      // FIXME: This function is not working as expected
-      let textUntilSelection = ''
-
-      for (const [node] of Node.texts(editor, {
-        from: [],
-        to: selection.focus.path,
-      })) {
-        if (isText(node)) {
-          textUntilSelection += node.text
+        if (nextNode != null && isText(nextNode) && nextNode.suggestion) {
+          return
         }
-      }
 
-      if (textUntilSelection.length < 10) return
+        // FIXME: This function is not working as expected
+        let textUntilSelection = ''
 
-      const response = await fetch(
-        `/api/complete?context=${encodeURIComponent(textUntilSelection)}`,
-      )
-
-      if (response.ok) {
-        const { suggestion } = (await response.json()) as { suggestion: string }
-
-        if (lastChange.current === lastChangeOfThisCall) {
-          Transforms.insertNodes(editor, {
-            text: suggestion,
-            suggestion: true,
-          })
-          editor.setSelection(selection)
+        for (const [node] of Node.texts(editor, {
+          from: [],
+          to: selection.focus.path,
+        })) {
+          if (isText(node)) {
+            textUntilSelection += node.text
+          }
         }
+
+        if (textUntilSelection.length < 10) return
+
+        const response = await fetch(
+          `/api/complete?context=${encodeURIComponent(textUntilSelection)}`,
+        )
+
+        if (response.ok) {
+          const { suggestion } = (await response.json()) as {
+            suggestion: string
+          }
+
+          if (lastChange.current === lastChangeOfThisCall) {
+            Transforms.insertNodes(editor, {
+              text: suggestion,
+              suggestion: true,
+            })
+            editor.setSelection(selection)
+          }
+        } else {
+          console.error('Error fetching suggestions:', response.statusText)
+        }
+      } finally {
+        completionJob.current = CompletionJob.WAITING
       }
     },
     [editor],
@@ -145,8 +154,12 @@ const SlateEditor = () => {
     // TODO: Check that selection is on end of line
 
     setTimeout(() => {
-      if (lastChange.current === lastChangeOfThisCall) {
+      if (
+        lastChange.current === lastChangeOfThisCall &&
+        completionJob.current === CompletionJob.WAITING
+      ) {
         void fetchSuggestions(lastChangeOfThisCall)
+        completionJob.current = CompletionJob.FETCHING
       }
     }, 1000)
   }, [fetchSuggestions])
@@ -168,8 +181,15 @@ const SlateEditor = () => {
           onKeyDown={onKeyDown}
         />
       </Slate>
+      <hr />
+      <p>CompletionJob: {completionJob.current}</p>
     </>
   )
+}
+
+enum CompletionJob {
+  WAITING = 'waiting',
+  FETCHING = 'fetching suggestions...',
 }
 
 function toggleMark(editor: Editor, format: 'bold' | 'italic') {
