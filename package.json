@@ -2,7 +2,7 @@
   "name": "2024-07-13-slate-with-chatgpt-suggestions",
   "scripts": {
     "format": "prettier --write .",
-    "start": "nodemon -e ts,tsx --watch backend --watch frontend --exec 'tsx backend/index.ts'"
+    "start": "nodemon -e ts,tsx --watch backend --watch frontend --exec 'tsx --env-file=.env backend/index.ts'"
   },
   "devDependencies": {
     "@eslint/compat": "^1.1.1",
@@ -23,6 +23,7 @@
   "dependencies": {
     "esbuild": "^0.23.0",
     "express": "^4.19.2",
+    "openai": "^4.52.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "slate": "^0.103.0",

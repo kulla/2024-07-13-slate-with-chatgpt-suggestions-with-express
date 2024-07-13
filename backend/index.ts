@@ -1,11 +1,13 @@
 import esbuild from 'esbuild'
 import express from 'express'
+import { OpenAI } from 'openai'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
 const buildID = `build-${new Date().getTime()}-${Math.random()}`
 const __filename = fileURLToPath(import.meta.url)
 const projectDir = dirname(dirname(__filename))
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const app = express()
 
 app.get('/', (_, res) => {
@@ -37,8 +39,26 @@ app.get('/index.js', async (_, res) => {
   }
 })
 
-app.get('/api/complete', (req, res) => {
-  res.json({ suggestion: 'Hello, World!' })
+app.get('/api/complete', async (req, res) => {
+  const suffix = req.query.context
+
+  if (typeof suffix !== 'string' || suffix.length === 0) {
+    res.status(400).json({ error: 'Invalid context' })
+    return
+  }
+
+  const { choices } = await openai.completions.create({
+    suffix,
+    model: 'gpt-3.5-turbo-instruct',
+    prompt: 'Du bist ein Lehrer und schreibst einen Bildungstext',
+  })
+
+  if (choices.length === 0) {
+    res.status(500).json({ error: 'No completions found' })
+    return
+  }
+
+  res.json({ suggestion: choices[0].text })
 })
 
 app.get('/___build_id', (_, res) => {
