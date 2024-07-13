@@ -1,10 +1,12 @@
 {
   "name": "2024-07-13-slate-with-chatgpt-suggestions",
   "scripts": {
+    "format": "prettier --write .",
     "start": "tsx --watch backend/index.ts"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
+    "prettier": "^3.3.3",
     "tsx": "^4.16.2"
   },
   "dependencies": {
