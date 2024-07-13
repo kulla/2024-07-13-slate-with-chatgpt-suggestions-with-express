@@ -72,20 +72,15 @@ const SlateEditor = () => {
 
           event.preventDefault()
         } else {
-          if (event.key.length === 1) {
-            if (Node.string(nextNode).startsWith(event.key)) {
-              Editor.deleteForward(editor)
-              Editor.addMark(editor, 'suggestion', false)
-              Editor.insertText(editor, event.key)
-              event.preventDefault()
-            } else {
-              Transforms.select(
-                editor,
-                Editor.range(editor, ReactEditor.findPath(editor, nextNode)),
-              )
-              Editor.deleteFragment(editor)
-            }
-          } else {
+          if (
+            event.key.length === 1 &&
+            Node.string(nextNode).startsWith(event.key)
+          ) {
+            Editor.deleteForward(editor)
+            Editor.addMark(editor, 'suggestion', false)
+            Editor.insertText(editor, event.key)
+            event.preventDefault()
+          } else if (event.key.length === 1 || event.key === 'Enter') {
             Transforms.select(
               editor,
               Editor.range(editor, ReactEditor.findPath(editor, nextNode)),
