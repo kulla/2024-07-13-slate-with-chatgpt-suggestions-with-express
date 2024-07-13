@@ -3,6 +3,7 @@ import express from 'express'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
 
+const buildID = `build-${new Date().getTime()}-${Math.random()}`
 const __filename = fileURLToPath(import.meta.url)
 const projectDir = dirname(dirname(__filename))
 const app = express()
@@ -29,6 +30,10 @@ app.get('/index.js', async (_, res) => {
     console.error('Error bundling TypeScript:', error)
     res.status(500).send('Error bundling TypeScript')
   }
+})
+
+app.get('/___build_id', (_, res) => {
+  res.send(buildID)
 })
 
 app.listen(3000, () => {
