@@ -116,6 +116,7 @@ const SlateEditor = () => {
               Editor.range(editor, ReactEditor.findPath(editor, nextNode)),
             )
             Editor.deleteFragment(editor)
+            Editor.addMark(editor, 'suggestion', false)
           }
         }
       }
