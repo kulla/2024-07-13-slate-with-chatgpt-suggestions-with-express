@@ -12,6 +12,10 @@ app.get('/', (_, res) => {
   res.sendFile(join(projectDir, 'public', 'index.html'))
 })
 
+app.get('/favicon.ico', (_, res) => {
+  res.sendFile(join(projectDir, 'public', 'favicon.ico'))
+})
+
 app.get('/index.js', async (_, res) => {
   res.setHeader('Content-Type', 'application/javascript')
 
