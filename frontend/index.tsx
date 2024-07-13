@@ -1,9 +1,11 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 
+import SlateEditor from './editor'
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <h1>Hello Worjjjld</h1>
+    <SlateEditor />
   </React.StrictMode>,
 )
 
@@ -11,7 +13,14 @@ let buildId: string | null = null
 setTimeout(checkBuildId, 2000)
 
 async function checkBuildId() {
-  const currentBuildId = await fetch('/___build_id').then((res) => res.text())
+  const buildIdResponse = await fetch('/___build_id')
+
+  if (!buildIdResponse.ok) {
+    // most probably the server is restarting
+    setTimeout(checkBuildId, 2000)
+  }
+
+  const currentBuildId = await buildIdResponse.text()
 
   if (buildId === null) {
     buildId = currentBuildId

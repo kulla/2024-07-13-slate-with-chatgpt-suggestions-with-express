@@ -26,6 +26,7 @@ app.get('/index.js', async (_, res) => {
       format: 'esm',
       platform: 'browser',
       write: false,
+      minify: true,
     })
 
     res.setHeader('Content-Type', 'application/javascript')
