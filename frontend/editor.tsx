@@ -88,11 +88,6 @@ const SlateEditor = () => {
             Editor.deleteFragment(editor)
           }
         }
-      } else {
-        if (event.key === 'F1') {
-          editor.insertNodes({ text: 'suggestion', suggestion: true })
-          editor.setSelection(selection)
-        }
       }
     },
     [editor],
@@ -151,7 +146,6 @@ const SlateEditor = () => {
 
   return (
     <>
-      <p>Press F1 to insert a suggestion</p>
       <div>
         <button onClick={() => toggleMark(editor, 'bold')}>Bold</button>
         <button onClick={() => toggleMark(editor, 'italic')}>Italic</button>
