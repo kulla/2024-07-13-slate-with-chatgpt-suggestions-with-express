@@ -37,6 +37,10 @@ app.get('/index.js', async (_, res) => {
   }
 })
 
+app.get('/api/complete', (req, res) => {
+  res.json({ suggestion: 'Hello, World!' })
+})
+
 app.get('/___build_id', (_, res) => {
   res.send(buildID)
 })

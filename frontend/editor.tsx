@@ -7,6 +7,7 @@ import {
   BaseEditor,
   Range,
   Node,
+  Descendant,
 } from 'slate'
 import {
   Slate,
@@ -43,7 +44,7 @@ const initialValue: CustomElement[] = [
 ]
 
 const SlateEditor = () => {
-  const [value, setValue] = useState<CustomElement[]>(initialValue)
+  const lastChange = React.useRef<number>(Date.now())
   const { editor, editorKey } = useMemo(
     () => ({
       editor: withHistory(withReact(createEditor())),
@@ -102,6 +103,57 @@ const SlateEditor = () => {
     [editor],
   )
 
+  const fetchSuggestions = React.useCallback(async () => {
+    const { selection } = editor
+
+    if (selection == null || !Range.isCollapsed(selection)) return
+
+    const [nextNode] = Editor.next(editor) ?? [null]
+
+    if (nextNode != null && isText(nextNode) && nextNode.suggestion) {
+      return
+    }
+
+    // FIXME: This function is not working as expected
+    let textUntilSelection = ''
+
+    for (const [node] of Node.texts(editor, {
+      from: [],
+      to: selection.focus.path,
+    })) {
+      if (isText(node)) {
+        textUntilSelection += node.text
+      }
+    }
+
+    const response = await fetch(
+      `/api/complete?context=${encodeURIComponent(textUntilSelection)}`,
+    )
+
+    if (response.ok) {
+      const { suggestion } = (await response.json()) as { suggestion: string }
+
+      Transforms.insertNodes(editor, {
+        text: suggestion,
+        suggestion: true,
+      })
+      editor.setSelection(selection)
+    }
+  }, [editor])
+
+  const onChange = React.useCallback(() => {
+    const lastChangeOfThisCall = Date.now()
+    lastChange.current = lastChangeOfThisCall
+
+    // TODO: Check that selection is on end of line
+
+    setTimeout(() => {
+      if (lastChange.current === lastChangeOfThisCall) {
+        void fetchSuggestions()
+      }
+    }, 1000)
+  }, [fetchSuggestions])
+
   return (
     <>
       <p>Press F1 to insert a suggestion</p>
@@ -112,8 +164,8 @@ const SlateEditor = () => {
       <Slate
         editor={editor}
         key={editorKey}
-        initialValue={value}
-        onChange={(newValue) => setValue(newValue as CustomElement[])}
+        initialValue={initialValue}
+        onChange={onChange}
       >
         <Editable
           renderLeaf={(props) => <Leaf {...props} />}
