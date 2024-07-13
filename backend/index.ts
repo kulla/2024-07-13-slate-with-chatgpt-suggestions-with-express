@@ -47,19 +47,24 @@ app.get('/api/complete', async (req, res) => {
     return
   }
 
-  const { choices } = await openai.completions.create({
-    suffix,
-    model: 'gpt-3.5-turbo-instruct',
-    prompt:
-      'Du bist ein Lehrer und schreibst ein Lehrmaterial. Vervollständige den Satz.',
+  const { choices } = await openai.chat.completions.create({
+    model: 'gpt-3.5-turbo',
+    messages: [
+      {
+        role: 'system',
+        content:
+          'Du bist eine exellente Lehrkraft. Du möchtest ein Lernmaterial erstellen. Vervollständige den Text sinnvoll, der dir zugesandt wird.',
+      },
+      { role: 'user', content: suffix },
+    ],
   })
 
-  if (choices.length === 0) {
+  if (choices.length === 0 || choices[0].message.content === null) {
     res.status(500).json({ error: 'No completions found' })
     return
   }
 
-  const suggestion = choices[0].text.trim()
+  const suggestion = choices[0].message.content
 
   if (suggestion.length === 0) {
     res.status(500).json({ error: 'Empty completion' })
