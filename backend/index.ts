@@ -10,6 +10,22 @@ const projectDir = dirname(dirname(__filename))
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const app = express()
 
+const prompt = `Du bist ein erfahrener Autor von Lernmaterialien in deutscher Sprache. Deine Aufgabe ist es, einen unvollständigen Text zu vervollständigen, indem du maximal einen Absatz hinzufügst. Der Text soll informativ, klar und für Lernende leicht verständlich sein.
+
+Der Text wird dir im nachfolgenden user prompt vorgegeben.
+
+Bitte vervollständige den Text unter Berücksichtigung der folgenden Anweisungen:
+
+1. Füge maximal einen Absatz hinzu, um den Text sinnvoll zu ergänzen.
+2. Stelle sicher, dass die Ergänzung nahtlos an den bestehenden Text anknüpft.
+3. Verwende eine klare, präzise und leicht verständliche Sprache.
+4. Achte darauf, dass die Informationen sachlich korrekt und relevant für das angegebene Thema sind.
+5. Behalte den Schreibstil und Ton des ursprünglichen Textes bei.
+6. Vermeide umgangssprachliche Ausdrücke oder komplizierte Fachbegriffe, es sei denn, sie sind für das Thema unerlässlich.
+7. Vervollständige maximal zwei Sätze.
+
+Achte darauf, dass deine Ergänzung den Text sinnvoll abschließt und keine offenen Fragen hinterlässt.`
+
 app.get('/', (_, res) => {
   res.sendFile(join(projectDir, 'public', 'index.html'))
 })
@@ -52,8 +68,7 @@ app.get('/api/complete', async (req, res) => {
     messages: [
       {
         role: 'system',
-        content:
-          'Du bist eine exellente Lehrkraft. Du möchtest ein Lernmaterial erstellen. Vervollständige den Text sinnvoll, der dir zugesandt wird.',
+        content: prompt,
       },
       { role: 'user', content: suffix },
     ],
