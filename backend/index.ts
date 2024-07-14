@@ -76,7 +76,7 @@ app.get('/api/complete', async (req, res) => {
       return
     }
 
-    const { choices } = await openai.chat.completions.create({
+    const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
         { role: 'system', content: prompt },
@@ -85,6 +85,8 @@ app.get('/api/complete', async (req, res) => {
       temperature: 0.25,
       response_format: { type: 'json_object' },
     })
+    console.log(response)
+    const { choices } = response
 
     if (choices.length === 0 || choices[0].message.content === null) {
       res.status(500).json({ error: 'No completions found' })
@@ -100,7 +102,11 @@ app.get('/api/complete', async (req, res) => {
 
     const suggestion = (completion.newWord ? ' ' : '') + completion.completion
 
-    res.json({ suggestion })
+    res.json({
+      suggestion,
+      promptTokens: response.usage?.prompt_tokens ?? 0,
+      completionTokens: response.usage?.completion_tokens ?? 0,
+    })
   } catch (error) {
     console.error('Error fetching suggestion:', error)
     res.status(500).json({ error: 'Failed to fetch suggestion' })

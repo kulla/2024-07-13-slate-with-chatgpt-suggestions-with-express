@@ -47,6 +47,10 @@ const SlateEditor = () => {
   const controller = React.useRef<AbortController | null>(null)
   const lastChange = React.useRef<number>(Date.now())
   const suggestionsEnabled = React.useRef<boolean>(true)
+  const [{ promptTokens, completionTokens }, setTokens] = React.useState({
+    promptTokens: 0,
+    completionTokens: 0,
+  })
 
   const { editor, editorKey } = useMemo(
     () => ({
@@ -71,9 +75,16 @@ const SlateEditor = () => {
       if (!response.ok) {
         throw new Error('Failed to fetch suggestion')
       }
-      return response.json() as Promise<{ suggestion: string }>
+      return response.json() as Promise<{
+        suggestion: string
+        promptTokens: number
+        completionTokens: number
+      }>
     },
-    onSuccess: async ({ suggestion }, { lastChangeOfThisCall }) => {
+    onSuccess: async (
+      { suggestion, promptTokens, completionTokens },
+      { lastChangeOfThisCall },
+    ) => {
       const { selection } = editor
 
       if (selection == null || !Range.isCollapsed(selection)) return
@@ -85,6 +96,11 @@ const SlateEditor = () => {
         })
         editor.setSelection(selection)
       }
+
+      setTokens((prev) => ({
+        promptTokens: prev.promptTokens + promptTokens,
+        completionTokens: prev.completionTokens + completionTokens,
+      }))
     },
   })
 
@@ -164,6 +180,8 @@ const SlateEditor = () => {
     }, 1000)
   }, [editor])
 
+  const cost = (0.5 * promptTokens) / 1e6 + (1.5 * completionTokens) / 1e6
+
   return (
     <>
       <div>
@@ -183,6 +201,12 @@ const SlateEditor = () => {
       </Slate>
       <hr />
       <p>Status of fetching suggestions: {fetchSuggestion.status}</p>
+      <p>
+        Used tokens: promptTokens={promptTokens} completionTokens=
+        {completionTokens}
+      </p>
+      <p>Costs so far: {cost}$</p>
+      <p>Costs of 100 similar usages: {cost * 100}$</p>
     </>
   )
 }
