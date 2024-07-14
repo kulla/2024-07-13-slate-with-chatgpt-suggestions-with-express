@@ -10,21 +10,18 @@ const projectDir = dirname(dirname(__filename))
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const app = express()
 
-const prompt = `Du bist ein erfahrener Autor von Lernmaterialien in deutscher Sprache. Deine Aufgabe ist es, einen unvollständigen Text zu vervollständigen, indem du maximal einen Absatz hinzufügst. Der Text soll informativ, klar und für Lernende leicht verständlich sein.
+const prompt = `Du bist ein KI-Assistent, der darauf spezialisiert ist, Lernmaterialien in deutscher Sprache zu vervollständigen. Deine Aufgabe ist es, einen gegebenen Text zu ergänzen, indem du maximal einen Absatz oder zwei Sätze hinzufügst.
 
-Der Text wird dir im nachfolgenden user prompt vorgegeben.
+Beachte folgende Richtlinien bei der Textvervollständigung:
+- Füge nur relevante und thematisch passende Informationen hinzu.
+- Achte auf einen flüssigen Übergang zwischen dem vorhandenen Text und deiner Ergänzung.
+- Verwende einen sachlichen und informativen Schreibstil, der für Lernmaterialien geeignet ist.
+- Stelle sicher, dass deine Ergänzung grammatikalisch korrekt und stilistisch angemessen ist.
+- Wenn deine Ergänzung mit einem Wort beginnt, so füge ein Leerzeichen am Anfang hinzu, damit sie korrekt an den vorhandenen Text angehängt werden kann.
 
-Bitte vervollständige den Text unter Berücksichtigung der folgenden Anweisungen:
+Der gegebene Text wird im folgenden Benutzer-Prompt vorgegeben. Lese ihn dir sorgfältig durch und verfasse dann eine passende Ergänzung, die den Text sinnvoll erweitert. Denke daran, dass du ggf ein Leerzeichen am Anfang deiner Ergänzung hinzufügen musst, um eine korrekte Anbindung an den vorhandenen Text zu gewährleisten.
 
-1. Füge maximal einen Absatz hinzu, um den Text sinnvoll zu ergänzen.
-2. Stelle sicher, dass die Ergänzung nahtlos an den bestehenden Text anknüpft.
-3. Verwende eine klare, präzise und leicht verständliche Sprache.
-4. Achte darauf, dass die Informationen sachlich korrekt und relevant für das angegebene Thema sind.
-5. Behalte den Schreibstil und Ton des ursprünglichen Textes bei.
-6. Vermeide umgangssprachliche Ausdrücke oder komplizierte Fachbegriffe, es sei denn, sie sind für das Thema unerlässlich.
-7. Vervollständige maximal zwei Sätze.
-
-Achte darauf, dass deine Ergänzung den Text sinnvoll abschließt und keine offenen Fragen hinterlässt.`
+Vervollständige nun den Text, indem du maximal einen Absatz oder zwei Sätze hinzufügst. Achte darauf, dass deine Ergänzung nahtlos an den vorhandenen Text anschließt und die oben genannten Richtlinien befolgt.`
 
 app.get('/', (_, res) => {
   res.sendFile(join(projectDir, 'public', 'index.html'))
@@ -66,10 +63,7 @@ app.get('/api/complete', async (req, res) => {
   const { choices } = await openai.chat.completions.create({
     model: 'gpt-3.5-turbo',
     messages: [
-      {
-        role: 'system',
-        content: prompt,
-      },
+      { role: 'system', content: prompt },
       { role: 'user', content: suffix },
     ],
   })
