@@ -1,5 +1,6 @@
 import esbuild from 'esbuild'
 import express from 'express'
+import * as t from 'io-ts'
 import { OpenAI } from 'openai'
 import { dirname, join } from 'path'
 import { fileURLToPath } from 'url'
@@ -9,6 +10,10 @@ const __filename = fileURLToPath(import.meta.url)
 const projectDir = dirname(dirname(__filename))
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
 const app = express()
+const Completion = t.type({
+  completion: t.string,
+  newWord: t.boolean,
+})
 
 const prompt = `Du bist ein KI-Assistent, der darauf spezialisiert ist, Lernmaterialien in deutscher Sprache zu vervollständigen. Deine Aufgabe ist es, einen gegebenen Text zu ergänzen, indem du maximal einen Absatz oder zwei Sätze hinzufügst.
 
@@ -19,9 +24,19 @@ Beachte folgende Richtlinien bei der Textvervollständigung:
 - Stelle sicher, dass deine Ergänzung grammatikalisch korrekt und stilistisch angemessen ist.
 - Wenn deine Ergänzung mit einem Wort beginnt, so füge ein Leerzeichen am Anfang hinzu, damit sie korrekt an den vorhandenen Text angehängt werden kann.
 
-Der gegebene Text wird im folgenden Benutzer-Prompt vorgegeben. Lese ihn dir sorgfältig durch und verfasse dann eine passende Ergänzung, die den Text sinnvoll erweitert. Denke daran, dass du ggf ein Leerzeichen am Anfang deiner Ergänzung hinzufügen musst, um eine korrekte Anbindung an den vorhandenen Text zu gewährleisten.
+Der gegebene Text wird im folgenden Benutzer-Prompt vorgegeben. Dieser hat das folgende Format:
 
-Vervollständige nun den Text, indem du maximal einen Absatz oder zwei Sätze hinzufügst. Achte darauf, dass deine Ergänzung nahtlos an den vorhandenen Text anschließt und die oben genannten Richtlinien befolgt.`
+<text>
+{{TEXT}}
+</text>
+
+Vervollständige nun den Text, indem du maximal einen Absatz oder zwei Sätze hinzufügst. Achte darauf, dass deine Ergänzung nahtlos an den vorhandenen Text anschließt und die oben genannten Richtlinien befolgt.
+
+Deine Antwort soll im JSON-Format erfolgen und folgende Felder enthalten:
+- "completion": Der Text, den du zur Vervollständigung hinzufügst (maximal ein Absatz oder zwei Sätze).
+- "newWord": Ein boolescher Wert (true/false), der angibt, ob die Ergänzung mit einem eigenen Absatz beginnt (true) oder direkt an den bestehenden Text anschließt (false).
+
+Analysiere den gegebenen Text sorgfältig und erstelle dann eine passende Ergänzung. Gib deine Antwort im spezifizierten JSON-Format aus, ohne zusätzliche Erklärungen oder Kommentare.`
 
 app.get('/', (_, res) => {
   res.sendFile(join(projectDir, 'public', 'index.html'))
@@ -55,32 +70,41 @@ app.get('/index.js', async (_, res) => {
 app.get('/api/complete', async (req, res) => {
   const suffix = req.query.context
 
-  if (typeof suffix !== 'string' || suffix.length === 0) {
-    res.status(400).json({ error: 'Invalid context' })
-    return
+  try {
+    if (typeof suffix !== 'string' || suffix.length === 0) {
+      res.status(400).json({ error: 'Invalid context' })
+      return
+    }
+
+    const { choices } = await openai.chat.completions.create({
+      model: 'gpt-3.5-turbo',
+      messages: [
+        { role: 'system', content: prompt },
+        { role: 'user', content: `<text>${suffix}</text>` },
+      ],
+      temperature: 0.25,
+      response_format: { type: 'json_object' },
+    })
+
+    if (choices.length === 0 || choices[0].message.content === null) {
+      res.status(500).json({ error: 'No completions found' })
+      return
+    }
+
+    const completion = JSON.parse(choices[0].message.content) as unknown
+
+    if (!Completion.is(completion)) {
+      res.status(500).json({ error: 'Invalid completion' })
+      return
+    }
+
+    const suggestion = (completion.newWord ? ' ' : '') + completion.completion
+
+    res.json({ suggestion })
+  } catch (error) {
+    console.error('Error fetching suggestion:', error)
+    res.status(500).json({ error: 'Failed to fetch suggestion' })
   }
-
-  const { choices } = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    messages: [
-      { role: 'system', content: prompt },
-      { role: 'user', content: suffix },
-    ],
-  })
-
-  if (choices.length === 0 || choices[0].message.content === null) {
-    res.status(500).json({ error: 'No completions found' })
-    return
-  }
-
-  const suggestion = choices[0].message.content
-
-  if (suggestion.length === 0) {
-    res.status(500).json({ error: 'Empty completion' })
-    return
-  }
-
-  res.json({ suggestion })
 })
 
 app.get('/___build_id', (_, res) => {

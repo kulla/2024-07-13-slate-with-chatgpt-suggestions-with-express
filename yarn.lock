@@ -21,7 +21,9 @@ __metadata:
     eslint: "npm:9.x"
     eslint-plugin-react: "npm:^7.34.3"
     express: "npm:^4.19.2"
+    fp-ts: "npm:^2.16.8"
     globals: "npm:^15.8.0"
+    io-ts: "npm:^2.2.21"
     nodemon: "npm:^3.1.4"
     openai: "npm:^4.52.7"
     prettier: "npm:^3.3.3"
@@ -2255,6 +2257,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"fp-ts@npm:^2.16.8":
+  version: 2.16.8
+  resolution: "fp-ts@npm:2.16.8"
+  checksum: 10c0/57e39db2b6ec336cdaaacde831b5e830e9194794028de088b0489a22e741a61ba5ecb4d886e2f308dd823471a159c4d6e790917a2c03c92f86ff65f45f31e766
+  languageName: node
+  linkType: hard
+
 "fresh@npm:0.5.2":
   version: 0.5.2
   resolution: "fresh@npm:0.5.2"
@@ -2642,6 +2651,15 @@ __metadata:
     hasown: "npm:^2.0.0"
     side-channel: "npm:^1.0.4"
   checksum: 10c0/f8b294a4e6ea3855fc59551bbf35f2b832cf01fd5e6e2a97f5c201a071cc09b49048f856e484b67a6c721da5e55736c5b6ddafaf19e2dbeb4a3ff1821680de6c
+  languageName: node
+  linkType: hard
+
+"io-ts@npm:^2.2.21":
+  version: 2.2.21
+  resolution: "io-ts@npm:2.2.21"
+  peerDependencies:
+    fp-ts: ^2.5.0
+  checksum: 10c0/4e59e2135c26ced17f9c357c554486e716ac4c75d9bf69164702f66d41400e165786b0d653263bcd2afb4dee947bff4eb7869899ec810050ef067307764f6c32
   languageName: node
   linkType: hard
 
