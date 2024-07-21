@@ -2,6 +2,11 @@
 
 Example repository for ChatGPT suggestions in Slate.
 
+## Notice
+
+Further development of this repository has been moved to
+https://github.com/kulla/2024-07-16-slate-with-chatgpt-suggestion-with-next-js
+
 ## Usage
 
 1. Clone the repository and run `yarn`.
